@@ -13,4 +13,4 @@ const similarity = left.map((value, i) => {
 
 const summed = similarity.reduce((acc, curr) => acc += curr, 0);
 
-console.log(summed.toString());
+console.log(summed);

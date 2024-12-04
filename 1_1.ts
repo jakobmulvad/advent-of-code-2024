@@ -12,4 +12,4 @@ right.sort();
 const diff = left.map((_, i) => Math.abs(left[i] - right[i]));
 const summed = diff.reduce((acc, curr) => acc + curr, 0);
 
-console.log(summed.toString());
+console.log(summed);
