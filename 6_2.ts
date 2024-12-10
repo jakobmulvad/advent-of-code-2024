@@ -1,83 +1,94 @@
 const input = await Deno.readTextFile("6_input.txt");
-const rows = input.split("\n").map((row) => row.replaceAll(".", "0"));
+const rows = input.split("\n");
 
 const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
-let guardDirection = 0;
-let guardRow = -1;
-let guardColumn = -1;
+let guardStartRow = -1;
+let guardStartColumn = -1;
+
+// 774,1609,1616,1657,1653,1680,1638
 
 for (let row = 0; row < rows.length; row++) {
-  guardColumn = rows[row].indexOf("^");
+  guardStartColumn = rows[row].indexOf("^");
 
-  if (guardColumn !== -1) {
-    guardRow = row;
+  if (guardStartColumn !== -1) {
+    guardStartRow = row;
     break;
   }
 }
 
-const charAt = (row: number, column: number): string | undefined => {
-  if (row < 0 || row >= rows.length || column < 0 || column >= rows[0].length) {
-    return undefined;
-  }
-  return rows[row][column];
+console.log(guardStartRow, guardStartColumn);
+
+type State = {
+  row: number;
+  column: number;
+  direction: number;
 };
 
-type Visit = [number, number, number];
+const charAt = (row: number, column: number, map: string[]): string | undefined => {
+  if (row < 0 || row >= map.length || column < 0 || column >= map[0].length) {
+    return undefined;
+  }
+  return map[row][column];
+};
 
-const hasLoopInDirection = (row: number, column: number, direction: number, visits: Visit[]): boolean => {
-  let [dr, dc] = directions[direction];
+const setObstacleAt = (row: number, column: number, map: string[]) => {
+  if (
+    row < 0 || row >= map.length || column < 0 || column >= map[0].length ||
+    (row === guardStartRow && column === guardStartColumn)
+  ) {
+    return map;
+  }
+  map = map.slice();
+  map[row] = map[row].substring(0, column) + "#" + map[row].substring(column + 1);
+  return map;
+};
 
-  const loopVisits = visits.slice();
+const step = (state: State, map: string[]): State | undefined => {
+  const [dr, dc] = directions[state.direction];
+  const nextChar = charAt(state.row + dr, state.column + dc, map);
 
-  let nextChar;
-  while (nextChar = charAt(row + dr, column + dc)) {
-    if (nextChar === "#") {
-      direction = (direction + 1) % 4;
-      [dr, dc] = directions[direction];
-      continue;
-    }
+  if (!nextChar) {
+    return undefined;
+  }
 
-    row += dr;
-    column += dc;
+  if (nextChar === "#") {
+    return { ...state, direction: (state.direction + 1) % 4 };
+  }
 
-    if (loopVisits.some(([r, c, d]) => r === row && c === column && d === direction)) {
-      // we have already been here moving the same direction
+  return {
+    row: state.row + dr,
+    column: state.column + dc,
+    direction: state.direction,
+  };
+};
+
+const doesMapHaveLoop = (state: State | undefined, map: string[]): boolean => {
+  const visited = new Set<string>();
+  while (state) {
+    const key = `${state.row},${state.column},${state.direction}`;
+    if (visited.has(key)) {
       return true;
     }
-
-    loopVisits.push([row, column, direction]);
+    visited.add(key);
+    state = step(state, map);
   }
   return false;
 };
 
-let loops = 0;
-
-const visits: Visit[] = [];
-const step = () => {
-  visits.push([guardRow, guardColumn, guardDirection]);
-  const [dr, dc] = directions[guardDirection];
-  const nextChar = charAt(guardRow + dr, guardColumn + dc);
-
-  if (!nextChar) {
-    return false;
-  }
-
-  if (nextChar === "#") {
-    guardDirection = (guardDirection + 1) % 4;
-    return true;
-  }
-
-  if (hasLoopInDirection(guardRow, guardColumn, (guardDirection + 1) % 4, visits)) {
-    loops++;
-  }
-
-  guardRow += dr;
-  guardColumn += dc;
-
-  return true;
+let state: State | undefined = {
+  row: guardStartRow,
+  column: guardStartColumn,
+  direction: 0,
 };
 
-while (step()) {
+let loops = 0;
+while (state) {
+  // Check for loop if we place a obstacle now
+  const [dr, dc] = directions[state.direction];
+  const loopMap = setObstacleAt(state.row + dr, state.column + dc, rows);
+  loops += doesMapHaveLoop(state, loopMap) ? 1 : 0;
+
+  state = step(state, rows);
 }
 
-console.log(rows.join("\n"), loops);
+console.log(rows);
