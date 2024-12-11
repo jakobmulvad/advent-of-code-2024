@@ -16,8 +16,6 @@ for (let row = 0; row < rows.length; row++) {
   }
 }
 
-console.log(guardStartRow, guardStartColumn);
-
 type State = {
   row: number;
   column: number;
